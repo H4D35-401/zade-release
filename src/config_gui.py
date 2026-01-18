@@ -43,34 +43,36 @@ class TacticalButton(tk.Button):
 class ConfigGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("ZADE IGNITE | ADVANCED TACTICAL HUD v4.0")
-        self.root.geometry("850x950")
-        self.root.configure(bg='#050505')
+        self.root.title("ZADE IGNITE | QUANTUM TACTICAL HUD v5.0")
+        self.root.geometry("1000x900")
+        self.root.configure(bg='#020205')
         
-        # Cybernetic Palette
         self.colors = {
-            "bg": "#050505",
-            "module_bg": "#0a0a0c",
-            "border": "#1a1a25",
+            "bg": "#020205",
+            "module_bg": "#0a0a12",
+            "border": "#1a1a2b",
             "accent": "#00f3ff", 
             "warning": "#ffb700", 
             "danger": "#ff3344",
             "text_dim": "#556677",
             "text_bright": "#ffffff",
-            "grid": "#101520"
+            "grid": "#0d111a"
         }
 
         self.red_alert = False
-        self.anim_offset = 0
-        self.viz_data = [random.randint(0, 50) for _ in range(40)]
+        self.shake_offset = (0, 0)
         self.scan_y = 0
+        self.viz_data = [random.randint(5, 40) for _ in range(50)]
+        self.pulse_alpha = 0
 
         self.style = ttk.Style()
         self.style.theme_use('clam')
         self.setup_styles()
         self.config = self.load_config_data()
-        self.current_width = 850
-        self.current_height = 950
+        
+        # UI Elements storage for canvas placement
+        self.modules = []
+        
         self.create_widgets()
         self.animate()
         
@@ -80,9 +82,7 @@ class ConfigGUI:
         
     def load_config_data(self):
         config = load_secure_config(CONFIG_PATH)
-        if config: return config
-        
-        return {
+        return config if config else {
             "location": "Global Node",
             "startup_volume": 80,
             "tts_response": "Tactical link established.",
@@ -108,245 +108,169 @@ class ConfigGUI:
             apps_text = self.apps_text.get("1.0", tk.END).strip()
             self.config["apps"] = [app.strip() for app in apps_text.split("\n") if app.strip()]
 
-            # Secure Saving
             save_secure_config(CONFIG_PATH, self.config)
-            
-            self.update_status("PROTOCOLS SECURED", self.colors["accent"])
+            self.update_status("QUANTUM ENCRYPTION SYNCED", self.colors["accent"])
         except Exception as e:
-            messagebox.showerror("SYNC ERROR", f"Encryption failure: {e}")
+            messagebox.showerror("SYNC ERROR", f"Protocol failure: {e}")
 
     def update_status(self, text, color):
-        prefix = "SYS_STATUS: " if not self.red_alert else "ALERT_LEVEL: "
-        self.status_label.config(text=f"{prefix}{text}", fg=color)
+        self.status_label.config(text=f"STATE: {text}", fg=color)
         if not self.red_alert:
-            self.root.after(3000, lambda: self.status_label.config(text="SYS_STATUS: STANDBY", fg=self.colors["text_dim"]))
+            self.root.after(3000, lambda: self.status_label.config(text="STATE: STANDBY", fg=self.colors["text_dim"]))
 
     def toggle_red_alert(self):
         self.red_alert = not self.red_alert
         if self.red_alert:
-            self.colors["grid"] = "#300a0a"
-            self.colors["accent"] = "#ff3344"
-            self.update_status("CRITICAL", self.colors["danger"])
-            self.alert_btn.config(text="DISARM_ALERT", fg=self.colors["text_bright"], bg=self.colors["danger"])
+            self.colors["accent"] = self.colors["danger"]
+            self.colors["grid"] = "#200505"
+            self.update_status("CRITICAL_ALERT", self.colors["danger"])
+            self.alert_btn.config(text="DISARM_ALERT", bg=self.colors["danger"], fg="#ffffff")
         else:
-            self.colors["grid"] = "#101520"
             self.colors["accent"] = "#00f3ff"
+            self.colors["grid"] = "#0d111a"
             self.update_status("STANDBY", self.colors["text_dim"])
-            self.alert_btn.config(text="RED_ALERT", fg=self.colors["danger"], bg="#200505")
+            self.alert_btn.config(text="RED_ALERT", bg="#150505", fg=self.colors["danger"])
         
-        # Refresh all tactical module colors
+        # Propagate color change to static elements
+        self.title_label.config(fg=self.colors["accent"])
         self.draw_grid()
-
-    def test_api_key(self):
-        key = self.api_key_var.get()
-        if not key:
-            messagebox.showwarning("AUTH MISSING", "No key detected.")
-            return
-        
-        self.update_status("POLLING_NEURAL_NODE...", self.colors["warning"])
-        
-        def run_test():
-            try:
-                import requests
-                headers = {"Authorization": f"Bearer {key}"}
-                response = requests.get("https://api.mistral.ai/v1/models", headers=headers, timeout=5)
-                if response.status_code == 200:
-                    self.root.after(0, lambda: self.update_status("LINK_ACTIVE", "#00ff88"))
-                    self.root.after(0, lambda: messagebox.showinfo("LINK ACTIVE", "Neural connection confirmed."))
-                else:
-                    self.root.after(0, lambda: self.update_status("LINK_FAILED", self.colors["danger"]))
-            except Exception as e:
-                self.root.after(0, lambda: self.update_status("NODE_OFFLINE", self.colors["danger"]))
-
-        threading.Thread(target=run_test, daemon=True).start()
 
     def launch_main(self):
         self.save_config()
         script_path = os.path.join(BASE_DIR, "main.py")
         try:
-            python_exe = "python3"
-            v1 = os.path.join(os.path.dirname(BASE_DIR), "venv", "bin", "python3")
-            v2 = os.path.join(BASE_DIR, "venv", "bin", "python3")
-            if os.path.exists(v1): python_exe = v1
-            elif os.path.exists(v2): python_exe = v2
-            
+            python_exe = os.path.join(BASE_DIR, "venv", "bin", "python3")
+            if not os.path.exists(python_exe): python_exe = "python3"
             subprocess.Popen([python_exe, script_path], cwd=BASE_DIR)
-            self.update_status("IGNITION_LIVE", self.colors["text_bright"])
+            self.update_status("IGNITION_LIVE", "#00ff88")
         except Exception as e:
             messagebox.showerror("FAILURE", f"Could not ignite: {e}")
 
     def create_widgets(self):
         self.canvas = tk.Canvas(self.root, bg=self.colors["bg"], highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
-        
-        self.main_container = tk.Frame(self.canvas, bg=self.colors["bg"])
-        self.window_id = self.canvas.create_window(0, 0, window=self.main_container, anchor="nw")
-        
         self.root.bind("<Configure>", self.on_resize)
-        self.draw_grid()
 
-        # Tactical Header
-        header = self.create_tactical_module(self.main_container, "COMMAND_OVERVIEW")
-        header.pack(fill=tk.X, pady=(20, 20), padx=40)
+        # 1. Header Module
+        header = self.create_tactical_module("SYSTEM COMMAND", width=600, height=120)
+        self.title_label = tk.Label(header, text="ZADE IGNITE", font=("Courier", 38, "bold"), fg=self.colors["accent"], bg=self.colors["module_bg"])
+        self.title_label.pack(pady=(10, 0))
+        self.status_label = tk.Label(header, text="STATE: STANDBY", font=("Courier", 10), fg=self.colors["text_dim"], bg=self.colors["module_bg"])
+        self.status_label.pack()
+
+        # 2. Protocol Module (Left)
+        proto = self.create_tactical_module("CORE_PROTOCOLS", width=420, height=280)
+        self.location_var = self.create_field(proto, "GEO_LOC", self.config.get("location", ""))
+        self.volume_var = self.create_field(proto, "GAIN", self.config.get("startup_volume", 80), spin=True)
+        self.tts_var = self.create_field(proto, "GREET", self.config.get("tts_response", ""))
+        self.music_var = self.create_field(proto, "SONG", self.config.get("music_path", ""))
+
+        # 3. Neural Module (Bottom Left)
+        neural = self.create_tactical_module("NEURAL_LINK", width=420, height=150)
+        self.api_key_var = self.create_field(neural, "MISTRAL_ID", self.config.get("MISTRAL_API_KEY", ""), show="*")
+        TacticalButton(neural, text="VERIFY_LINK", command=lambda: self.update_status("POLLING...", "#ffb700"), bg="#10101a", width=15).pack(pady=10)
+
+        # 4. Seq Module (Right)
+        seq = self.create_tactical_module("AUTO_SEQUENCE", width=420, height=250)
+        self.apps_text = tk.Text(seq, height=8, bg="#050510", fg="#ffffff", font=("Courier", 10), borderwidth=0, highlightthickness=1, highlightbackground=self.colors["border"])
+        self.apps_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        self.apps_text.insert("1.0", "\n".join(self.config.get("apps", [])))
+
+        # 5. Synth Module (Bottom Right)
+        synth = self.create_tactical_module("VOICE_SYNTH", width=420, height=180)
+        self.voice_var = self.create_field(synth, "ID", self.config.get("voice_id", ""))
+        self.rate_var = self.create_field(synth, "RATE", self.config.get("speech_rate", ""))
+        self.pitch_var = self.create_field(synth, "PITCH", self.config.get("voice_pitch", ""))
+
+        # 6. Controls
+        self.alert_btn = TacticalButton(self.root, text="RED_ALERT", command=self.toggle_red_alert, bg="#150505", fg=self.colors["danger"], height=2)
+        save_btn = TacticalButton(self.root, text="SAVE_PROTOCOLS", command=self.save_config, bg="#051510", fg="#00ff88", height=2)
+        ignite_btn = TacticalButton(self.root, text="INIT_IGNITION", command=self.launch_main, bg="#200505", fg="#ff3344", height=2)
         
-        tk.Label(header, text="ZADE IGNITE", font=("Courier", 34, "bold"), fg=self.colors["accent"], bg=self.colors["module_bg"]).pack(pady=(10, 0))
-        tk.Label(header, text="ENCRYPTED NEURAL HUD [v4.0]", font=("Courier", 9), fg=self.colors["text_dim"], bg=self.colors["module_bg"]).pack()
+        # Store as canvas items for dynamic layout
+        self.header_win = self.canvas.create_window(500, 80, window=header, width=600)
+        self.proto_win = self.canvas.create_window(260, 310, window=proto, width=420)
+        self.neural_win = self.canvas.create_window(260, 540, window=neural, width=420)
+        self.seq_win = self.canvas.create_window(740, 295, window=seq, width=420)
+        self.synth_win = self.canvas.create_window(740, 525, window=synth, width=420)
         
-        self.status_label = tk.Label(header, text="SYS_STATUS: STANDBY", font=("Courier", 10, "bold"), fg=self.colors["text_dim"], bg=self.colors["module_bg"])
-        self.status_label.pack(pady=10)
+        self.alert_win = self.canvas.create_window(500, 680, window=self.alert_btn, width=200)
+        self.save_win = self.canvas.create_window(350, 750, window=save_btn, width=300)
+        self.ignite_win = self.canvas.create_window(650, 750, window=ignite_btn, width=300)
 
-        # Control Row
-        control = tk.Frame(self.main_container, bg=self.colors["bg"])
-        control.pack(fill=tk.X, padx=40, pady=(0, 10))
-        
-        self.alert_btn = TacticalButton(control, text="RED_ALERT", command=self.toggle_red_alert,
-                                        bg="#200505", fg=self.colors["danger"], active_bg=self.colors["danger"],
-                                        width=15)
-        self.alert_btn.pack(side=tk.RIGHT)
+    def create_tactical_module(self, title, width, height):
+        f = tk.Frame(self.canvas, bg=self.colors["module_bg"], highlightthickness=1, highlightbackground=self.colors["border"])
+        tk.Label(f, text=f" {title} ", font=("Courier", 8, "bold"), fg=self.colors["accent"], bg=self.colors["bg"]).pack(anchor=tk.W, padx=10, pady=(5, 0))
+        # Decorative brackets
+        tk.Label(f, text="⌜", font=("Courier", 14), fg=self.colors["accent"], bg=self.colors["module_bg"]).place(x=0, y=0)
+        tk.Label(f, text="⌝", font=("Courier", 14), fg=self.colors["accent"], bg=self.colors["module_bg"]).place(relx=1.0, x=-14, y=0)
+        tk.Label(f, text="⌞", font=("Courier", 14), fg=self.colors["accent"], bg=self.colors["module_bg"]).place(x=0, rely=1.0, y=-22)
+        tk.Label(f, text="⌟", font=("Courier", 14), fg=self.colors["accent"], bg=self.colors["module_bg"]).place(relx=1.0, x=-14, rely=1.0, y=-22)
+        return f
 
-        # Content Grid
-        content = tk.Frame(self.main_container, bg=self.colors["bg"])
-        content.pack(fill=tk.BOTH, expand=True, padx=40)
-
-        left_col = tk.Frame(content, bg=self.colors["bg"])
-        left_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
-
-        # System Config
-        sys_mod = self.create_tactical_module(left_col, "CORE_PROTOCOLS")
-        self.location_var = self.create_tactical_field(sys_mod, "GEO_LOC", self.config.get("location", ""))
-        self.volume_var = self.create_tactical_field(sys_mod, "AUDIO_GAIN", self.config.get("startup_volume", 80), spin=True)
-        self.tts_var = self.create_tactical_field(sys_mod, "MSG_GREET", self.config.get("tts_response", ""))
-        self.music_var = self.create_tactical_field(sys_mod, "SONG_LINK", self.config.get("music_path", ""))
-
-        # Auth Module
-        auth_mod = self.create_tactical_module(left_col, "NEURAL_LINK")
-        self.api_key_var = self.create_tactical_field(auth_mod, "MISTRAL_ID", self.config.get("MISTRAL_API_KEY", ""), show="*")
-        
-        TacticalButton(auth_mod, text="VERIFY_LINK", command=self.test_api_key, 
-                       bg="#151525", fg=self.colors["warning"], active_bg=self.colors["warning"],
-                       width=18, height=1).pack(pady=10)
-
-        right_col = tk.Frame(content, bg=self.colors["bg"])
-        right_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0))
-
-        # Seq Module
-        seq_mod = self.create_tactical_module(right_col, "AUTO_SEQ_LIST")
-        self.apps_text = tk.Text(seq_mod, height=11, width=25, bg="#050505", fg=self.colors["text_bright"], 
-                                 insertbackground=self.colors["accent"], font=("Courier", 10), borderwidth=1, 
-                                 relief="flat", highlightthickness=1, highlightbackground=self.colors["border"])
-        self.apps_text.pack(fill=tk.BOTH, expand=True, pady=10)
-        self.apps_text.insert(tk.END, "\n".join(self.config.get("apps", [])))
-
-        # Synth Module
-        synth_mod = self.create_tactical_module(right_col, "VOICE_SYNTH")
-        self.voice_var = self.create_tactical_field(synth_mod, "VOICE_ID", self.config.get("voice_id", "en_US-ChristopherNeural"))
-        self.rate_var = self.create_tactical_field(synth_mod, "TEMPO", self.config.get("speech_rate", "+15%"))
-        self.pitch_var = self.create_tactical_field(synth_mod, "PITCH", self.config.get("voice_pitch", "-5Hz"))
-
-        # Footer
-        footer = tk.Frame(self.main_container, bg=self.colors["bg"])
-        footer.pack(fill=tk.X, pady=(30, 20), padx=40)
-
-        TacticalButton(footer, text="SAVE_PROTOCOLS", command=self.save_config, 
-                       bg="#0a0a20", fg=self.colors["accent"], active_bg=self.colors["accent"],
-                       height=2).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-
-        TacticalButton(footer, text="INIT_IGNITION", command=self.launch_main, 
-                       bg="#200505", fg=self.colors["danger"], active_bg=self.colors["danger"],
-                       height=2).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+    def create_field(self, parent, label, default, show=None, spin=False):
+        f = tk.Frame(parent, bg=self.colors["module_bg"], padx=10, pady=2)
+        f.pack(fill=tk.X)
+        tk.Label(f, text=f"> {label}:", font=("Courier", 8), fg=self.colors["text_dim"], bg=self.colors["module_bg"]).pack(anchor=tk.W)
+        var = tk.StringVar(value=str(default))
+        cfg = {"font": ("Courier", 10), "bg": "#050510", "fg": "#f0f0f0", "relief": "flat", "insertbackground": "#00f3ff"}
+        comp = tk.Spinbox(f, from_=0, to=100, textvariable=var, **cfg) if spin else tk.Entry(f, textvariable=var, **cfg)
+        if show: comp.config(show=show)
+        comp.pack(fill=tk.X, pady=(0, 5))
+        return var
 
     def on_resize(self, event):
         if event.widget == self.root:
-            self.current_width = event.width
-            self.current_height = event.height
+            w, h = event.width, event.height
+            self.canvas.coords(self.header_win, w/2, 80)
+            self.canvas.coords(self.proto_win, w/2 - 240, 310)
+            self.canvas.coords(self.neural_win, w/2 - 240, 540)
+            self.canvas.coords(self.seq_win, w/2 + 240, 295)
+            self.canvas.coords(self.synth_win, w/2 + 240, 525)
+            self.canvas.coords(self.alert_win, w/2, 680)
+            self.canvas.coords(self.save_win, w/2 - 160, 750)
+            self.canvas.coords(self.ignite_win, w/2 + 160, 750)
             self.draw_grid()
-            self.canvas.itemconfig(self.window_id, width=event.width, height=event.height)
 
     def draw_grid(self):
         self.canvas.delete("grid")
-        w = self.current_width
-        h = self.current_height
-        spacing = 40
-        
-        # Grid
-        color = self.colors["grid"]
-        for x in range(0, w, spacing):
-            self.canvas.create_line(x, 0, x, h, fill=color, tags="grid")
-        for y in range(0, h, spacing):
-            self.canvas.create_line(0, y, w, y, fill=color, tags="grid")
-            
-        # Brackets
-        self.canvas.create_line(10, 30, 10, 10, 30, 10, fill=self.colors["accent"], width=2, tags="grid")
-        self.canvas.create_line(w-30, 10, w-10, 10, w-10, 30, fill=self.colors["accent"], width=2, tags="grid")
-        self.canvas.create_line(10, h-30, 10, h-10, 30, h-10, fill=self.colors["accent"], width=2, tags="grid")
-        self.canvas.create_line(w-30, h-10, w-10, h-10, w-10, h-30, fill=self.colors["accent"], width=2, tags="grid")
+        w, h = self.root.winfo_width(), self.root.winfo_height()
+        gap = 50
+        for x in range(0, w, gap):
+            self.canvas.create_line(x, 0, x, h, fill=self.colors["grid"], tags="grid")
+        for y in range(0, h, gap):
+            self.canvas.create_line(0, y, w, y, fill=self.colors["grid"], tags="grid")
 
     def animate(self):
-        self.canvas.delete("anim")
-        w = self.current_width
-        h = self.current_height
+        self.canvas.delete("fx")
+        w, h = self.root.winfo_width(), self.root.winfo_height()
         
-        # 1. Voice Visualizer (Bottom Wave)
-        points = []
-        for i, val in enumerate(self.viz_data):
+        # 1. Scanning Line
+        self.scan_y = (self.scan_y + 3) % h
+        self.canvas.create_line(0, self.scan_y, w, self.scan_y, fill=self.colors["accent"], width=1, tags="fx", stipple="gray25")
+        
+        # 2. Voice Wave (Neural Flux)
+        pts = []
+        for i, v in enumerate(self.viz_data):
             x = (w / len(self.viz_data)) * i
-            # Shift wave data
-            self.viz_data[i] = max(5, min(100, val + random.randint(-15, 15)))
-            y = h - 20 - self.viz_data[i]
-            points.extend([x, y])
-        
-        if len(points) > 4:
-            self.canvas.create_line(points, fill=self.colors["accent"], width=2, smooth=True, tags="anim", stipple="gray50")
+            self.viz_data[i] = max(2, min(80, v + random.randint(-10, 10)))
+            pts.extend([x, h - 10 - self.viz_data[i]])
+        if len(pts) > 4:
+            self.canvas.create_line(pts, fill=self.colors["accent"], width=2, smooth=True, tags="fx")
 
-        # 2. Scanning Line
-        self.scan_y = (self.scan_y + 4) % h
-        self.canvas.create_line(0, self.scan_y, w, self.scan_y, fill=self.colors["accent"], width=1, tags="anim", stipple="gray12")
-
-        # 3. Red Alert Pulse
+        # 3. Red Alert Shaker
         if self.red_alert:
-            alpha = (math.sin(time.time() * 5) + 1) / 2
-            pulse_color = f"#{int(50 + 100 * alpha):02x}0505"
-            self.canvas.create_rectangle(0, 0, w, h, fill="", outline=pulse_color, width=10, tags="anim")
-            if alpha > 0.8:
-                self.canvas.create_text(w//2, 50, text="TACTICAL ALERT: CRITICAL STATE", font=("Courier", 20, "bold"), fill="#ff3344", tags="anim")
+            self.pulse_alpha = (math.sin(time.time()*10) + 1) / 2
+            self.canvas.create_rectangle(0,0,w,h, outline=self.colors["danger"], width=10*self.pulse_alpha, tags="fx")
+            self.canvas.create_text(w/2, h-50, text="CRITICAL STATUS OVERRIDE", font=("Courier", 20, "bold"), fill=self.colors["danger"], tags="fx")
+            # Subtle shake
+            dx, dy = random.randint(-2, 2), random.randint(-2, 2)
+            self.canvas.move("all", dx, dy)
+            self.root.after(50, lambda: self.canvas.move("all", -dx, -dy))
 
-        self.root.after(50, self.animate)
-
-    def create_tactical_module(self, parent, title):
-        mod = tk.Frame(parent, bg=self.colors["module_bg"], highlightthickness=1, highlightbackground=self.colors["border"])
-        mod.pack(fill=tk.BOTH, expand=True, pady=10)
-        
-        tk.Label(mod, text=f" {title} ", font=("Courier", 8, "bold"), fg=self.colors["accent"], 
-                 bg=self.colors["bg"], pady=0).pack(anchor=tk.W, padx=10, pady=(10, 5))
-        
-        tk.Label(mod, text="⌜", font=("Courier", 12), fg=self.colors["accent"], bg=self.colors["module_bg"]).place(x=2, y=2)
-        tk.Label(mod, text="⌟", font=("Courier", 12), fg=self.colors["accent"], bg=self.colors["module_bg"]).place(relx=1.0, rely=1.0, x=-12, y=-18)
-
-        return mod
-
-    def create_tactical_field(self, parent, label, default, show=None, spin=False):
-        f = tk.Frame(parent, bg=self.colors["module_bg"], padx=15, pady=5)
-        f.pack(fill=tk.X)
-        
-        tk.Label(f, text=f"> {label}:", font=("Courier", 8, "bold"), fg=self.colors["text_dim"], bg=self.colors["module_bg"]).pack(anchor=tk.W)
-        var = tk.StringVar(value=str(default))
-        
-        entry_config = {
-            "font": ("Courier", 10), "bg": "#050505", "fg": self.colors["text_bright"], 
-            "insertbackground": self.colors["accent"], "borderwidth": 1, 
-            "relief": "flat", "highlightthickness": 0
-        }
-        
-        if spin:
-            comp = tk.Spinbox(f, from_=0, to=100, textvariable=var, **entry_config, buttonbackground="#1a1a25")
-        else:
-            comp = tk.Entry(f, textvariable=var, **entry_config)
-            if show: comp.config(show=show)
-            
-        comp.pack(fill=tk.X, pady=(2, 6))
-        return var
+        self.root.after(40, self.animate)
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ConfigGUI(root)
+    ConfigGUI(root)
     root.mainloop()
