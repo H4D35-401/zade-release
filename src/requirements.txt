@@ -1,0 +1,9 @@
+SpeechRecognition
+pyaudio
+numpy
+# gTTS # Replacing with edge-tts
+edge-tts
+requests
+psutil
+scipy
+mistralai

@@ -1,0 +1,18 @@
+# Python Caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv/
+ENV/
+env/
+
+# Configuration and Secrets
+src/config.json
+.env
+
+# Build Artifacts
+dist/
+build/
+*.spec
