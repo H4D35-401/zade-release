@@ -107,6 +107,34 @@ class ConfigGUI:
 
     def update_status(self, text, color):
         self.status_label.config(text=f"STATE: {text}", fg=color)
+        if not self.red_alert:
+            self.root.after(3000, lambda: self.status_label.config(text="STATE: STANDBY", fg=self.colors["text_dim"]))
+
+    def toggle_red_alert(self):
+        self.red_alert = not self.red_alert
+        if self.red_alert:
+            self.colors["accent"] = self.colors["danger"]
+            self.colors["grid"] = "#200505"
+            self.update_status("CRITICAL_ALERT", self.colors["danger"])
+            self.alert_btn.config(text="DISARM_ALERT", bg=self.colors["danger"], fg="#ffffff")
+        else:
+            self.colors["accent"] = "#00f3ff"
+            self.colors["grid"] = "#0d111a"
+            self.update_status("STANDBY", self.colors["text_dim"])
+            self.alert_btn.config(text="RED_ALERT", bg="#150505", fg=self.colors["danger"])
+        self.title_label.config(fg=self.colors["accent"])
+        self.draw_grid()
+
+    def launch_main(self):
+        self.save_config()
+        script_path = os.path.join(BASE_DIR, "main.py")
+        try:
+            python_exe = os.path.join(BASE_DIR, "venv", "bin", "python3")
+            if not os.path.exists(python_exe): python_exe = "python3"
+            subprocess.Popen([python_exe, script_path], cwd=BASE_DIR)
+            self.update_status("IGNITION_LIVE", "#00ff88")
+        except Exception as e:
+            messagebox.showerror("FAILURE", f"Could not ignite: {e}")
 
     def create_widgets(self):
         self.canvas = tk.Canvas(self.root, bg=self.colors["bg"], highlightthickness=0)
@@ -168,8 +196,13 @@ class ConfigGUI:
         self.app_win = self.canvas.create_window(820, 680, window=app_mod, width=450)
 
         # Footer Actions
+        self.alert_btn = TacticalButton(self.root, text="RED_ALERT", command=self.toggle_red_alert, bg="#150505", fg=self.colors["danger"], height=2)
         save_btn = TacticalButton(self.root, text="SAVE_PROTOCOLS", command=self.save_config, bg="#051510", fg="#00ff88", height=2)
-        self.save_win = self.canvas.create_window(550, 850, window=save_btn, width=400)
+        ignite_btn = TacticalButton(self.root, text="INIT_IGNITION", command=self.launch_main, bg="#200505", fg="#ff3344", height=2)
+        
+        self.alert_win = self.canvas.create_window(550, 780, window=self.alert_btn, width=200)
+        self.save_win = self.canvas.create_window(350, 850, window=save_btn, width=300)
+        self.ignite_win = self.canvas.create_window(750, 850, window=ignite_btn, width=300)
 
     def create_tactical_module(self, title, width, height):
         f = tk.Frame(self.canvas, bg=self.colors["module_bg"], highlightthickness=1, highlightbackground=self.colors["border"])
@@ -195,7 +228,9 @@ class ConfigGUI:
             self.canvas.coords(self.ai_win, w/2 + 270, 330)
             self.canvas.coords(self.voice_win, w/2 - 270, 550)
             self.canvas.coords(self.app_win, w/2 + 270, 680)
-            self.canvas.coords(self.save_win, w/2, 850)
+            self.canvas.coords(self.alert_win, w/2, 780)
+            self.canvas.coords(self.save_win, w/2 - 200, 850)
+            self.canvas.coords(self.ignite_win, w/2 + 200, 850)
             self.draw_grid()
 
     def draw_grid(self):
@@ -216,6 +251,15 @@ class ConfigGUI:
             self.viz_data[i] = max(2, min(80, v + random.randint(-10, 10)))
             pts.extend([x, h - 10 - self.viz_data[i]])
         if len(pts) > 4: self.canvas.create_line(pts, fill=self.colors["accent"], width=2, smooth=True, tags="fx")
+        # 3. Red Alert Shaker
+        if self.red_alert:
+            alpha = (math.sin(time.time()*10) + 1) / 2
+            self.canvas.create_rectangle(0,0,w,h, outline=self.colors["danger"], width=10*alpha, tags="fx")
+            self.canvas.create_text(w/2, h-50, text="CRITICAL STATUS OVERRIDE", font=("Courier", 20, "bold"), fill=self.colors["danger"], tags="fx")
+            dx, dy = random.randint(-2, 2), random.randint(-2, 2)
+            self.canvas.move("all", dx, dy)
+            self.root.after(50, lambda: self.canvas.move("all", -dx, -dy))
+
         self.root.after(40, self.animate)
 
 if __name__ == "__main__":
