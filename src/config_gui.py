@@ -223,14 +223,44 @@ class ConfigGUI:
     def on_resize(self, event):
         if event.widget == self.root:
             w, h = event.width, event.height
-            self.canvas.coords(self.header_win, w/2, 80)
-            self.canvas.coords(self.proto_win, w/2 - 270, 280)
-            self.canvas.coords(self.ai_win, w/2 + 270, 330)
-            self.canvas.coords(self.voice_win, w/2 - 270, 550)
-            self.canvas.coords(self.app_win, w/2 + 270, 680)
-            self.canvas.coords(self.alert_win, w/2, 780)
-            self.canvas.coords(self.save_win, w/2 - 200, 850)
-            self.canvas.coords(self.ignite_win, w/2 + 200, 850)
+            
+            # Responsive scaling
+            side_margin = 40
+            gap = 20
+            module_w = max(300, (w - (side_margin * 2) - gap) // 2)
+            center_x = w / 2
+            left_x = side_margin + (module_w / 2)
+            right_x = w - side_margin - (module_w / 2)
+            
+            # 1. Header (Full width-ish)
+            header_w = min(1000, w - (side_margin * 2))
+            self.canvas.itemconfig(self.header_win, width=header_w)
+            self.canvas.coords(self.header_win, center_x, 80)
+            
+            # 2. Left Column
+            self.canvas.itemconfig(self.proto_win, width=module_w)
+            self.canvas.coords(self.proto_win, left_x, 280)
+            
+            self.canvas.itemconfig(self.voice_win, width=module_w)
+            self.canvas.coords(self.voice_win, left_x, 550)
+            
+            # 3. Right Column
+            self.canvas.itemconfig(self.ai_win, width=module_w)
+            self.canvas.coords(self.ai_win, right_x, 330)
+            
+            self.canvas.itemconfig(self.app_win, width=module_w)
+            self.canvas.coords(self.app_win, right_x, 680)
+            
+            # 4. Footer Actions
+            self.canvas.coords(self.alert_win, center_x, 780)
+            
+            btn_w = min(300, (w - side_margin*2 - gap) // 2)
+            self.canvas.itemconfig(self.save_win, width=btn_w)
+            self.canvas.coords(self.save_win, center_x - (btn_w/2) - (gap/2), 850)
+            
+            self.canvas.itemconfig(self.ignite_win, width=btn_w)
+            self.canvas.coords(self.ignite_win, center_x + (btn_w/2) + (gap/2), 850)
+            
             self.draw_grid()
 
     def draw_grid(self):
