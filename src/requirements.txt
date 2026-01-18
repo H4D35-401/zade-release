@@ -8,3 +8,6 @@ psutil
 scipy
 mistralai
 cryptography
+openai
+google-generativeai
+python-dotenv

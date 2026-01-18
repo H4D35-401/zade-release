@@ -14,12 +14,12 @@ To create a seamless bridge between user intent and system action through advanc
 - **Window Managers**: Fully compatible with Tiling Window Managers (**i3**, **Sway**, **Hyprland**) and Desktop Environments (Knome, Plasma).
 - **Environment**: Designed for high-performance terminal and GUI orchestration.
 
-## ✨ Key Features
-- **Voice Ignition**: Wake the system with simple voice cues (defaulting to "Ignite").
-- **Neural Brain**: Integrated with Mistral AI for intelligent, context-aware conversations.
-- **Auto-Sequence**: Automatically launch your specific app stack (Chrome, Spotify, IDEs, etc.) on startup.
-- **Premium GUI**: A sleek, Orbitron-styled Command Center for real-time configuration and system health monitoring.
-- **Adaptive Voice**: Customizable voice identity, tempo, and pitch offsets.
+## ✨ Key Features (v6.0 Universal HUD)
+- **Universal AI Engine**: Select between **Mistral**, **OpenAI**, and **Google Gemini** directly in the HUD.
+- **Cross-Platform Mastery**: Native support for **Arch Linux**, generic Linux distributions, and **Windows 10/11**.
+- **Voice Profile Browser**: Choose and preview from a wide range of regional voice profiles.
+- **Quantum HUD v5.0+**: Floating interactive modules on a dynamic, animated tactical canvas.
+- **Encrypted Security**: Machine-locked encryption for your AI credentials.
 
 ## 🛠️ Installation
 

@@ -1,96 +1,71 @@
-from mistralai import Mistral
-from mistralai.models import UserMessage, SystemMessage
 import logging
 import os
-from datetime import datetime
+from mistralai import Mistral
+import openai
+import google.generativeai as genai
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Conversation History
-history = []
-client = None
+_client = None
+_engine_type = "mistral" # default
 
-def init_ai(api_key):
+def init_ai(config):
     """
-    Initialize the Mistral API.
+    Initializes the AI brain based on config.
+    Supports: 'mistral', 'openai', 'gemini'
     """
-    global client
-    if not api_key or "API_KEY_HERE" in api_key:
-        logger.warning("Mistral API Key not found. AI features will be disabled.")
-        return False
-        
-    try:
-        client = Mistral(api_key=api_key)
-        return True
-    except Exception as e:
-        logger.error(f"Failed to init AI: {e}")
-        return False
-
-def ask_ai(prompt, context_prompt=""):
-    """
-    Send prompt to Mistral and get response.
-    Includes a system prompt behavior via context.
-    """
-    global history, client
+    global _client, _engine_type
     
-    if not client:
-        return "AI system not initialized."
+    _engine_type = config.get("ai_engine", "mistral").lower()
+    api_key = config.get(f"{_engine_type.upper()}_API_KEY", "")
     
-    try:
-        model = "mistral-tiny"
-        
-        # Construct the system instruction
-        system_instruction = (
-            "You are Zade, a helpful, witty, and concise AI assistant inspired by JARVIS. "
-            "Keep your answers short (max 2-3 sentences) because you are being spoken out loud. "
-            "Address the user as 'Sir'. "
-            f"Current date: {datetime.now().strftime('%A, %B %d, %Y')}. "
-            f"Current time: {datetime.now().strftime('%I:%M %p')}. "
-        )
-        if context_prompt:
-             system_instruction += f"\nContext: {context_prompt}"
+    if not api_key:
+        logger.warning(f"No API key found for {_engine_type}. AI interactions disabled.")
+        return
 
-        # Construct messages
-        messages = [SystemMessage(content=system_instruction)]
+    try:
+        if _engine_type == "mistral":
+            _client = Mistral(api_key=api_key)
+            logger.info("Mistral Neural Link initialized.")
         
-        # Add history
-        # History format: [{'role': 'user', 'content': ...}, ...]
-        for msg in history:
-            if msg['role'] == 'user':
-                messages.append(UserMessage(content=msg['content']))
-            elif msg['role'] == 'assistant':
-                # Note: mistralai models might have AssistantMessage, let's just assume we can send User/System for strictness or verify AssistantMessage.
-                # Usually there is AssistantMessage.
-                # Let's check imports for AssistantMessage to be safe or just skip history if lazy.
-                # STARTUP SETUP/fix_imports.py didn't check AssistantMessage.
-                # I'll optimistically assume AssistantMessage exists or use dicts if Mistral supports it.
-                # Mistral v1 usually supports dicts too. Let's try dicts first as they are often compatible.
-                pass
-        
-        # Actually, let's use the object approach but check if AssistantMessage exists.
-        # If not, skipping history is safer than crashing. 
-        # But wait, I can just try `from mistralai.models import AssistantMessage`.
-        
-        # Add current user prompt
-        messages.append(UserMessage(content=prompt))
-        
-        chat_response = client.chat.complete(
-            model=model,
-            messages=messages,
-        )
-        
-        text_response = chat_response.choices[0].message.content
-        
-        # Update history
-        history.append({'role': 'user', 'content': prompt})
-        history.append({'role': 'assistant', 'content': text_response})
-        if len(history) > 10:
-            history = history[-10:]
+        elif _engine_type == "openai":
+            openai.api_key = api_key
+            _client = openai.OpenAI(api_key=api_key)
+            logger.info("OpenAI Neural Link initialized.")
             
-        return text_response
-        
+        elif _engine_type == "gemini":
+            genai.configure(api_key=api_key)
+            _client = genai.GenerativeModel('gemini-pro')
+            logger.info("Gemini Neural Link initialized.")
+            
     except Exception as e:
-        logger.error(f"AI Generation failed: {e}")
-        return "I apologize sir, I am unable to process that request appropriately."
+        logger.error(f"Neural linkage failure: {e}")
+
+def ask_ai(prompt):
+    """Queries the active AI engine."""
+    global _client, _engine_type
+    if not _client:
+        return "System error: No active neural link. Please check your API keys."
+
+    try:
+        if _engine_type == "mistral":
+            response = _client.chat.complete(
+                model="mistral-tiny",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.choices[0].message.content
+
+        elif _engine_type == "openai":
+            response = _client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.choices[0].message.content
+
+        elif _engine_type == "gemini":
+            response = _client.generate_content(prompt)
+            return response.text
+
+    except Exception as e:
+        logger.error(f"AI Query failed: {e}")
+        return "I'm having trouble connecting to my neural network right now."

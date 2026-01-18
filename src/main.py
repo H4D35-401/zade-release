@@ -50,8 +50,7 @@ def main():
     voice_engine.start_processing()
     
     # Initialize AI
-    api_key = config.get("MISTRAL_API_KEY", "")
-    ai_brain.init_ai(api_key)
+    ai_brain.init_ai(config)
     
     voice_engine.speak("System online. Listening.")
     print("System Ready - Listening...", flush=True)
@@ -124,10 +123,16 @@ def main():
             # 5. CANCEL / TERMINATE
             elif "terminate" in words or "abort" in words or (("cancel" in words or "stop" in words) and any(w in words for w in ["system", "protocol", "process", "program", "listening"])):
                 voice_engine.speak("Goodbye, sir. Deactivating protocols.")
-                # Just wait for speech to finish, then exit. Do NOT close apps as per user request.
+                # Just wait for speech to finish, then exit.
                 voice_engine.wait_for_completion()
-                # Kill parent process (the shell) to close terminal
-                os.kill(os.getppid(), signal.SIGHUP)
+                
+                # Only try to kill parent if NOT running as a systemd service
+                if 'INVOCATION_ID' not in os.environ:
+                    try:
+                        os.kill(os.getppid(), signal.SIGHUP)
+                    except PermissionError:
+                        logger.warning("Could not terminate parent process (Permission Denied).")
+                
                 break
                 
             # 6. SMART COMMANDS (Open / Search)
