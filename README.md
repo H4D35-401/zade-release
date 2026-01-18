@@ -45,6 +45,23 @@ This will create a virtual environment and install all necessary neural dependen
 2. **Apps**: List the commands for apps you want ZADE to launch upon ignition (one per line).
 3. **Voice**: Adjust the Voice ID and Tempo to match your preference.
 
+## 🛠️ Troubleshooting
+
+### 1. `ModuleNotFoundError: No module named 'cryptography'`
+This happens if the security library is missing from your environment.
+- **Fix**: Run `pip install cryptography` or re-run `./setup_env.sh` to refresh the virtual environment.
+
+### 2. `PermissionError` on Exit
+If you see a permission error when trying to "Cancel" or "Deactivate" ZADE, it is usually because you are running it as a background service and it's trying to close the parent terminal.
+- **Fix**: This is handled automatically in **v4.1+**. If you encounter it, ensure you are running the latest version from this repository.
+
+### 3. Voice Not Recognized
+- **Fix**: Ensure your microphone is calibrated. Stay silent during the "Calibrating" phase at startup. 
+
+### 4. `config.json` Security
+Your configuration is **machine-locked**. If you copy your `config.json` to another computer, it will not be readable. This is a security feature to protect your API keys.
+- **Fix**: Create a fresh config on the new machine.
+
 ## 🤝 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
 
