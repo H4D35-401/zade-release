@@ -5,7 +5,24 @@ import os
 import logging
 from audio_utils import no_alsa_error
 
-# Setup logging
+# Shared state for GUI reactivity
+vocal_level = 0.0
+
+def get_vocal_level():
+    global vocal_level
+    return vocal_level
+
+def _on_audio_data(recognizer, audio):
+    """Callback to update volume level for UI reactivity."""
+    global vocal_level
+    try:
+        # Calculate simple RMS energy from raw data
+        raw = audio.get_raw_data()
+        if raw:
+            import audioop
+            vocal_level = audioop.rms(raw, 2) / 32768.0 # Normalize 0.0 to 1.0ish
+    except Exception:
+        vocal_level = 0.0
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -174,6 +191,10 @@ def listen_for_input():
             try:
                 # Optimized for a balance of speed and reliability
                 audio = recognizer.listen(source, timeout=10, phrase_time_limit=15)
+                # Brief volume check for UI (not real-time enough in blocking listen, but better than nothing)
+                global vocal_level
+                import audioop
+                vocal_level = audioop.rms(audio.get_raw_data(), 2) / 1000.0
                 try:
                     text = recognizer.recognize_google(audio).lower()
                     print(f"[DEBUG] Recognized: {text}", flush=True)

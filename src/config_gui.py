@@ -8,7 +8,9 @@ import time
 import math
 import random
 import platform
+import psutil
 from secure_io import load_secure_config, save_secure_config
+import voice_engine
 
 # Configuration Path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -195,27 +197,33 @@ class ConfigGUI:
         self.rate_var = self.create_field(voice_mod, "TEMPO", self.config.get("speech_rate", ""))
         self.pitch_var = self.create_field(voice_mod, "PITCH", self.config.get("voice_pitch", ""))
 
-        # 5. Apps (Bottom Right)
-        app_mod = self.create_tactical_module("AUTO_SEQUENCE", 450, 250)
-        self.apps_text = tk.Text(app_mod, height=8, bg="#050510", fg="#ffffff", font=("Courier", 10), borderwidth=0)
+        # 5. Apps (Middle Right)
+        app_mod = self.create_tactical_module("AUTO_SEQUENCE", 450, 200)
+        self.apps_text = tk.Text(app_mod, height=5, bg="#050510", fg="#ffffff", font=("Courier", 10), borderwidth=0)
         self.apps_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         self.apps_text.insert("1.0", "\n".join(self.config.get("apps", [])))
 
+        # 6. Telemetry (Bottom Center)
+        tele_mod = self.create_tactical_module("SYSTEM_TELEMETRY", 900, 150)
+        self.tele_canvas = tk.Canvas(tele_mod, bg="#050510", height=80, highlightthickness=0)
+        self.tele_canvas.pack(fill=tk.X, padx=10, pady=5)
+        
         # Canvas Windows
-        self.header_win = self.canvas.create_window(550, 80, window=header, width=700)
+        self.header_win = self.canvas.create_window( center_x, 80, window=header, width=700)
         self.proto_win = self.canvas.create_window(280, 280, window=proto, width=450)
         self.ai_win = self.canvas.create_window(820, 330, window=ai_mod, width=450)
         self.voice_win = self.canvas.create_window(280, 550, window=voice_mod, width=450)
-        self.app_win = self.canvas.create_window(820, 680, window=app_mod, width=450)
+        self.app_win = self.canvas.create_window(820, 600, window=app_mod, width=450)
+        self.tele_win = self.canvas.create_window(550, 800, window=tele_mod, width=900)
 
         # Footer Actions
         self.alert_btn = TacticalButton(self.root, text="RED_ALERT", command=self.toggle_red_alert, bg="#150505", fg=self.colors["danger"], height=2)
         save_btn = TacticalButton(self.root, text="SAVE_PROTOCOLS", command=self.save_config, bg="#051510", fg="#00ff88", height=2)
         ignite_btn = TacticalButton(self.root, text="INIT_IGNITION", command=self.launch_main, bg="#200505", fg="#ff3344", height=2)
         
-        self.alert_win = self.canvas.create_window(550, 780, window=self.alert_btn, width=200)
-        self.save_win = self.canvas.create_window(350, 850, window=save_btn, width=300)
-        self.ignite_win = self.canvas.create_window(750, 850, window=ignite_btn, width=300)
+        self.alert_win = self.canvas.create_window(550, 950, window=self.alert_btn, width=200)
+        self.save_win = self.canvas.create_window(350, 1020, window=save_btn, width=300)
+        self.ignite_win = self.canvas.create_window(750, 1020, window=ignite_btn, width=300)
 
     def create_tactical_module(self, title, width, height):
         f = tk.Frame(self.canvas, bg=self.colors["module_bg"], highlightthickness=1, highlightbackground=self.colors["border"])
@@ -246,31 +254,33 @@ class ConfigGUI:
             if vertical_mode:
                 # VERTICAL STACK MODE
                 module_w = min(800, w - (side_margin * 2))
-                left_x = center_x
-                right_x = center_x
                 
                 # Dynamic Y-Offsets
                 y_pos = 80 # Header
                 self.canvas.coords(self.header_win, center_x, y_pos)
                 self.canvas.itemconfig(self.header_win, width=module_w)
                 
-                y_pos += 140 # Move down for Proto
+                y_pos += 140 # Proto
                 self.canvas.coords(self.proto_win, center_x, y_pos)
                 self.canvas.itemconfig(self.proto_win, width=module_w)
                 
-                y_pos += 210 # Move down for AI
+                y_pos += 210 # AI
                 self.canvas.coords(self.ai_win, center_x, y_pos)
                 self.canvas.itemconfig(self.ai_win, width=module_w)
                 
-                y_pos += 300 # Move down for Voice
+                y_pos += 300 # Voice
                 self.canvas.coords(self.voice_win, center_x, y_pos)
                 self.canvas.itemconfig(self.voice_win, width=module_w)
                 
-                y_pos += 240 # Move down for Apps
+                y_pos += 220 # Apps
                 self.canvas.coords(self.app_win, center_x, y_pos)
                 self.canvas.itemconfig(self.app_win, width=module_w)
                 
-                y_pos += 260 # Move down for Alert
+                y_pos += 150 # Telemetry
+                self.canvas.coords(self.tele_win, center_x, y_pos)
+                self.canvas.itemconfig(self.tele_win, width=module_w)
+                
+                y_pos += 120 # Alert
                 self.canvas.coords(self.alert_win, center_x, y_pos)
                 
                 y_pos += 80 # Footer Buttons
@@ -302,17 +312,21 @@ class ConfigGUI:
                 self.canvas.coords(self.ai_win, right_x, 330)
                 
                 self.canvas.itemconfig(self.app_win, width=module_w)
-                self.canvas.coords(self.app_win, right_x, 680)
+                self.canvas.coords(self.app_win, right_x, 600)
                 
-                self.canvas.coords(self.alert_win, center_x, 780)
+                tele_w = w - (side_margin * 2)
+                self.canvas.itemconfig(self.tele_win, width=tele_w)
+                self.canvas.coords(self.tele_win, center_x, 800)
+
+                self.canvas.coords(self.alert_win, center_x, 950)
                 btn_w = min(300, (w - side_margin*2 - gap) // 2)
                 self.canvas.itemconfig(self.save_win, width=btn_w)
-                self.canvas.coords(self.save_win, center_x - (btn_w/2) - (gap/2), 850)
+                self.canvas.coords(self.save_win, center_x - (btn_w/2) - (gap/2), 1020)
                 
                 self.canvas.itemconfig(self.ignite_win, width=btn_w)
-                self.canvas.coords(self.ignite_win, center_x + (btn_w/2) + (gap/2), 850)
+                self.canvas.coords(self.ignite_win, center_x + (btn_w/2) + (gap/2), 1020)
                 
-                final_y = 950
+                final_y = 1100
 
             # Update Scroll Region
             self.canvas.config(scrollregion=(0, 0, w, final_y))
@@ -329,24 +343,60 @@ class ConfigGUI:
     def animate(self):
         self.canvas.delete("fx")
         w, h = self.root.winfo_width(), self.root.winfo_height()
-        self.scan_y = (self.scan_y + 3) % h
-        self.canvas.create_line(0, self.scan_y, w, self.scan_y, fill=self.colors["accent"], width=1, tags="fx", stipple="gray25")
+        
+        # 0. Vocal Reactivity
+        v_lvl = voice_engine.get_vocal_level()
+        pulse_w = 1 + (v_lvl * 5)
+        accent_pulse = self.colors["accent"] if v_lvl < 0.3 else self.colors["warning"]
+        
+        # 1. Scanning Line
+        self.scan_y = (self.scan_y + (3 + v_lvl*20)) % 1200 
+        self.canvas.create_line(0, self.scan_y, w, self.scan_y, fill=accent_pulse, width=pulse_w, tags="fx", stipple="gray25")
+        
+        # 2. Voice Visualization (Neural Flux Reactive)
         pts = []
         for i, v in enumerate(self.viz_data):
             x = (w / len(self.viz_data)) * i
-            self.viz_data[i] = max(2, min(80, v + random.randint(-10, 10)))
-            pts.extend([x, h - 10 - self.viz_data[i]])
-        if len(pts) > 4: self.canvas.create_line(pts, fill=self.colors["accent"], width=2, smooth=True, tags="fx")
-        # 3. Red Alert Shaker
+            target_v = max(5, v_lvl * 400 * random.random()) if v_lvl > 0.1 else random.randint(5, 40)
+            self.viz_data[i] = self.viz_data[i] * 0.7 + target_v * 0.3 # Smooth transition
+            pts.extend([x, 1000 - self.viz_data[i]])
+        if len(pts) > 4: self.canvas.create_line(pts, fill=accent_pulse, width=pulse_w, smooth=True, tags="fx")
+        
+        # 3. Telemetry Visualizers
+        self.update_telemetry()
+
+        # 4. Red Alert Shaker
         if self.red_alert:
             alpha = (math.sin(time.time()*10) + 1) / 2
-            self.canvas.create_rectangle(0,0,w,h, outline=self.colors["danger"], width=10*alpha, tags="fx")
-            self.canvas.create_text(w/2, h-50, text="CRITICAL STATUS OVERRIDE", font=("Courier", 20, "bold"), fill=self.colors["danger"], tags="fx")
+            self.canvas.create_rectangle(0,0,w,1200, outline=self.colors["danger"], width=10*alpha, tags="fx")
+            self.canvas.create_text(w/2, 100, text="CRITICAL STATUS OVERRIDE", font=("Courier", 20, "bold"), fill=self.colors["danger"], tags="fx")
             dx, dy = random.randint(-2, 2), random.randint(-2, 2)
             self.canvas.move("all", dx, dy)
             self.root.after(50, lambda: self.canvas.move("all", -dx, -dy))
 
         self.root.after(40, self.animate)
+
+    def update_telemetry(self):
+        self.tele_canvas.delete("bar")
+        w = self.tele_canvas.winfo_width()
+        if w < 100: return # Skip if not initialized
+        
+        stats = [
+            ("CPU", psutil.cpu_percent()),
+            ("RAM", psutil.virtual_memory().percent),
+            ("BAT", psutil.sensors_battery().percent if psutil.sensors_battery() else 100)
+        ]
+        
+        bar_w = (w - 60) // 3
+        for i, (label, val) in enumerate(stats):
+            x = 20 + i * (bar_w + 10)
+            # Label
+            self.tele_canvas.create_text(x + 5, 15, text=f"{label}: {int(val)}%", fill=self.colors["accent"], font=("Courier", 8), anchor=tk.NW, tags="bar")
+            # Bg Bar
+            self.tele_canvas.create_rectangle(x, 35, x + bar_w, 55, outline=self.colors["border"], fill="#050510", tags="bar")
+            # Fill Bar
+            fill_color = self.colors["accent"] if val < 80 else (self.colors["warning"] if val < 90 else self.colors["danger"])
+            self.tele_canvas.create_rectangle(x, 35, x + (bar_w * val / 100), 55, fill=fill_color, outline="", tags="bar")
 
 if __name__ == "__main__":
     root = tk.Tk()
