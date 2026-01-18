@@ -137,9 +137,22 @@ class ConfigGUI:
             messagebox.showerror("FAILURE", f"Could not ignite: {e}")
 
     def create_widgets(self):
-        self.canvas = tk.Canvas(self.root, bg=self.colors["bg"], highlightthickness=0)
-        self.canvas.pack(fill=tk.BOTH, expand=True)
+        # Container for scrollable canvas
+        self.main_frame = tk.Frame(self.root, bg=self.colors["bg"])
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.canvas = tk.Canvas(self.main_frame, bg=self.colors["bg"], highlightthickness=0)
+        self.scrollbar = tk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+
         self.root.bind("<Configure>", self.on_resize)
+        # Mousewheel scrolling
+        self.root.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+        self.root.bind_all("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))
+        self.root.bind_all("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
 
         # 1. Header
         header = self.create_tactical_module("SYSTEM COMMAND", 700, 120)
@@ -224,48 +237,91 @@ class ConfigGUI:
         if event.widget == self.root:
             w, h = event.width, event.height
             
-            # Responsive scaling
+            # Adaptive Threshold
+            vertical_mode = w < 950
             side_margin = 40
-            gap = 20
-            module_w = max(300, (w - (side_margin * 2) - gap) // 2)
+            gap = 25
             center_x = w / 2
-            left_x = side_margin + (module_w / 2)
-            right_x = w - side_margin - (module_w / 2)
-            
-            # 1. Header (Full width-ish)
-            header_w = min(1000, w - (side_margin * 2))
-            self.canvas.itemconfig(self.header_win, width=header_w)
-            self.canvas.coords(self.header_win, center_x, 80)
-            
-            # 2. Left Column
-            self.canvas.itemconfig(self.proto_win, width=module_w)
-            self.canvas.coords(self.proto_win, left_x, 280)
-            
-            self.canvas.itemconfig(self.voice_win, width=module_w)
-            self.canvas.coords(self.voice_win, left_x, 550)
-            
-            # 3. Right Column
-            self.canvas.itemconfig(self.ai_win, width=module_w)
-            self.canvas.coords(self.ai_win, right_x, 330)
-            
-            self.canvas.itemconfig(self.app_win, width=module_w)
-            self.canvas.coords(self.app_win, right_x, 680)
-            
-            # 4. Footer Actions
-            self.canvas.coords(self.alert_win, center_x, 780)
-            
-            btn_w = min(300, (w - side_margin*2 - gap) // 2)
-            self.canvas.itemconfig(self.save_win, width=btn_w)
-            self.canvas.coords(self.save_win, center_x - (btn_w/2) - (gap/2), 850)
-            
-            self.canvas.itemconfig(self.ignite_win, width=btn_w)
-            self.canvas.coords(self.ignite_win, center_x + (btn_w/2) + (gap/2), 850)
-            
-            self.draw_grid()
 
-    def draw_grid(self):
+            if vertical_mode:
+                # VERTICAL STACK MODE
+                module_w = min(800, w - (side_margin * 2))
+                left_x = center_x
+                right_x = center_x
+                
+                # Dynamic Y-Offsets
+                y_pos = 80 # Header
+                self.canvas.coords(self.header_win, center_x, y_pos)
+                self.canvas.itemconfig(self.header_win, width=module_w)
+                
+                y_pos += 140 # Move down for Proto
+                self.canvas.coords(self.proto_win, center_x, y_pos)
+                self.canvas.itemconfig(self.proto_win, width=module_w)
+                
+                y_pos += 210 # Move down for AI
+                self.canvas.coords(self.ai_win, center_x, y_pos)
+                self.canvas.itemconfig(self.ai_win, width=module_w)
+                
+                y_pos += 300 # Move down for Voice
+                self.canvas.coords(self.voice_win, center_x, y_pos)
+                self.canvas.itemconfig(self.voice_win, width=module_w)
+                
+                y_pos += 240 # Move down for Apps
+                self.canvas.coords(self.app_win, center_x, y_pos)
+                self.canvas.itemconfig(self.app_win, width=module_w)
+                
+                y_pos += 260 # Move down for Alert
+                self.canvas.coords(self.alert_win, center_x, y_pos)
+                
+                y_pos += 80 # Footer Buttons
+                btn_w = (module_w - gap) // 2
+                self.canvas.itemconfig(self.save_win, width=btn_w)
+                self.canvas.coords(self.save_win, center_x - (btn_w/2) - (gap/2), y_pos)
+                
+                self.canvas.itemconfig(self.ignite_win, width=btn_w)
+                self.canvas.coords(self.ignite_win, center_x + (btn_w/2) + (gap/2), y_pos)
+                
+                final_y = y_pos + 100
+            else:
+                # 2-COLUMN TACTICAL HUD
+                module_w = (w - (side_margin * 2) - gap) // 2
+                left_x = side_margin + (module_w / 2)
+                right_x = w - side_margin - (module_w / 2)
+                
+                header_w = min(1000, w - (side_margin * 2))
+                self.canvas.itemconfig(self.header_win, width=header_w)
+                self.canvas.coords(self.header_win, center_x, 80)
+                
+                self.canvas.itemconfig(self.proto_win, width=module_w)
+                self.canvas.coords(self.proto_win, left_x, 280)
+                
+                self.canvas.itemconfig(self.voice_win, width=module_w)
+                self.canvas.coords(self.voice_win, left_x, 550)
+                
+                self.canvas.itemconfig(self.ai_win, width=module_w)
+                self.canvas.coords(self.ai_win, right_x, 330)
+                
+                self.canvas.itemconfig(self.app_win, width=module_w)
+                self.canvas.coords(self.app_win, right_x, 680)
+                
+                self.canvas.coords(self.alert_win, center_x, 780)
+                btn_w = min(300, (w - side_margin*2 - gap) // 2)
+                self.canvas.itemconfig(self.save_win, width=btn_w)
+                self.canvas.coords(self.save_win, center_x - (btn_w/2) - (gap/2), 850)
+                
+                self.canvas.itemconfig(self.ignite_win, width=btn_w)
+                self.canvas.coords(self.ignite_win, center_x + (btn_w/2) + (gap/2), 850)
+                
+                final_y = 950
+
+            # Update Scroll Region
+            self.canvas.config(scrollregion=(0, 0, w, final_y))
+            self.draw_grid(final_y)
+
+    def draw_grid(self, height=None):
         self.canvas.delete("grid")
-        w, h = self.root.winfo_width(), self.root.winfo_height()
+        w = self.root.winfo_width()
+        h = height if height else self.root.winfo_height()
         gap = 50
         for x in range(0, w, gap): self.canvas.create_line(x, 0, x, h, fill=self.colors["grid"], tags="grid")
         for y in range(0, h, gap): self.canvas.create_line(0, y, w, y, fill=self.colors["grid"], tags="grid")
