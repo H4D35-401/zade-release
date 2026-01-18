@@ -112,11 +112,13 @@ def calibrate_mic():
             microphone = sr.Microphone()
             
         with microphone as source:
-            # Faster calibration
-            recognizer.adjust_for_ambient_noise(source, duration=0.5)
-            # Reduce thresholds for snappier end-of-speech detection
-            recognizer.pause_threshold = 0.5 
-            recognizer.non_speaking_duration = 0.3
+            # Better calibration
+            recognizer.adjust_for_ambient_noise(source, duration=1.0)
+            recognizer.dynamic_energy_threshold = True
+            recognizer.energy_threshold = 300 # Base starting point
+            # Breathing room
+            recognizer.pause_threshold = 0.8
+            recognizer.non_speaking_duration = 0.4
     logger.info("Calibration complete.")
 
 async def _generate_audio(text, output_file, voice, rate, pitch):
@@ -170,8 +172,8 @@ def listen_for_input():
         # Reuse existing microphone instance to skip init overhead
         with microphone as source:
             try:
-                # Reduced timeout for snappier fail-over
-                audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
+                # Optimized for a balance of speed and reliability
+                audio = recognizer.listen(source, timeout=10, phrase_time_limit=15)
                 try:
                     text = recognizer.recognize_google(audio).lower()
                     print(f"[DEBUG] Recognized: {text}", flush=True)

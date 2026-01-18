@@ -2,7 +2,7 @@ import logging
 import os
 from mistralai import Mistral
 import openai
-import google.generativeai as genai
+from google import genai
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +34,9 @@ def init_ai(config):
             logger.info("OpenAI Neural Link initialized.")
             
         elif _engine_type == "gemini":
-            genai.configure(api_key=api_key)
-            _client = genai.GenerativeModel('gemini-pro')
-            logger.info("Gemini Neural Link initialized.")
+            # Using new google-genai v1 SDK
+            _client = genai.Client(api_key=api_key)
+            logger.info("Gemini Neural Link (v1 SDK) initialized.")
             
     except Exception as e:
         logger.error(f"Neural linkage failure: {e}")
@@ -63,7 +63,11 @@ def ask_ai(prompt):
             return response.choices[0].message.content
 
         elif _engine_type == "gemini":
-            response = _client.generate_content(prompt)
+            # Using new google-genai v1 SDK
+            response = _client.models.generate_content(
+                model="gemini-pro",
+                contents=prompt
+            )
             return response.text
 
     except Exception as e:
