@@ -9,6 +9,11 @@ ZADE IGNITE is a high-performance, voice-activated virtual assistant designed fo
 ## 🚀 Vision
 To create a seamless bridge between user intent and system action through advanced voice recognition, neural-link AI (Mistral), and automated task sequences.
 
+## 🖥️ Platform Support
+- **Operating System**: Optimized for **Arch Linux** and general Linux distributions.
+- **Window Managers**: Fully compatible with Tiling Window Managers (**i3**, **Sway**, **Hyprland**) and Desktop Environments (Knome, Plasma).
+- **Environment**: Designed for high-performance terminal and GUI orchestration.
+
 ## ✨ Key Features
 - **Voice Ignition**: Wake the system with simple voice cues (defaulting to "Ignite").
 - **Neural Brain**: Integrated with Mistral AI for intelligent, context-aware conversations.
