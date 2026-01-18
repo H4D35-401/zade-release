@@ -30,15 +30,23 @@ cd zade-ignite/zade-release
 ```
 
 ### 2. Run Setup Script
+
+#### 🐧 Linux
 This will create a virtual environment and install all necessary neural dependencies.
 ```bash
 ./setup_env.sh
 ```
 
-### 3. Launch the Command Center
-```bash
-./run_zade.sh
-```
+#### 🪟 Windows
+1. Ensure **Python 3.9+** is installed and added to your **PATH**.
+2. Simply double-click **`run_zade.bat`**. 
+   - It will automatically create a virtual environment (`venv_win`).
+   - It will synchronize all tactical dependencies.
+   - The HUD will ignite automatically once setup is complete.
+
+### 3. Launch the HUD
+- **Linux**: `./run_zade.sh`
+- **Windows**: Double-click `run_zade.bat`
 
 ## ⚙️ Configuration
 1. **Mistral AI Key**: Obtain an API key from [Mistral AI](https://console.mistral.ai/) and input it into the "Neural Interface" section.
