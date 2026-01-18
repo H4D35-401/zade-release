@@ -16,6 +16,8 @@ import webbrowser
 import subprocess
 import concurrent.futures
 
+from secure_io import load_secure_config
+
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -24,10 +26,13 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
 def load_config():
     try:
-        with open(CONFIG_PATH, 'r') as f:
-            return json.load(f)
+        config = load_secure_config(CONFIG_PATH)
+        if config:
+            return config
+        # Fallback to local default if file is missing/unreadable
+        return {}
     except Exception as e:
-        logger.error(f"Could not load config: {e}")
+        logger.error(f"Could not load secure config: {e}")
         return {}
 
 def main():
