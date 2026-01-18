@@ -139,6 +139,7 @@ class ConfigGUI:
             messagebox.showerror("FAILURE", f"Could not ignite: {e}")
 
     def create_widgets(self):
+        center_x = 550 # Default center
         # Container for scrollable canvas
         self.main_frame = tk.Frame(self.root, bg=self.colors["bg"])
         self.main_frame.pack(fill=tk.BOTH, expand=True)
